@@ -7,10 +7,10 @@ import (
 
 // Revisar el parametro de entrada -p para path de la carpeta
 func CheckParam() string {
-	port := flag.String("port", "", "path of directory")
+	port := flag.String("port", "", "port ")
 	flag.Parse()
 	if *port == "" {
-		panic("-p Path of directory Argument required")
+		panic("-port ")
 	}
 	return *port
 }
