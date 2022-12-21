@@ -3,8 +3,6 @@ package main
 import (
 	"indexer/domain"
 	"indexer/shared/utils"
-
-	"github.com/pkg/profile"
 )
 
 const (
@@ -14,9 +12,6 @@ const (
 )
 
 func main() {
-
-	defer profile.Start(profile.CPUProfile, profile.ProfilePath(".")).Stop()
-	//defer profile.Start(profile.MemProfile, profile.ProfilePath(".")).Stop()
 
 	domain.Init()
 	pathDirectory := utils.CheckOnlyParam()
