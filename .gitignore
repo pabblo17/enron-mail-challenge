@@ -1,3 +1,13 @@
+#general
+
+*.env
+*.tgz
+
+#special folders 
+
 cli-enron-mail/node_modules/
 
 zinc-search-indexer/data/
+
+#test-folders
+_file/
