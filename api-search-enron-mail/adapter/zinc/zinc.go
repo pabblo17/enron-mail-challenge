@@ -10,19 +10,36 @@ import (
 	"strings"
 )
 
-func getFieldsToSearch() []string {
-	return []string{
-		"from",
-		"to",
-		"x-to",
-		"content",
-		"subject",
-		"path",
-	}
+func CreateIndex(_body string) string {
+	url := getZincSearchHostAPI() + "index/"
+	return _executeHttpRequest(url, _body, "POST")
 }
 
-func SearchByIdAPI(id string) string {
-	url := getZincSearchHostAPI() + getZincSearchIndex() + "/_search"
+func DeleteIndex(index string) string {
+	url := getZincSearchHostAPI() + "index/" + index
+	return _executeHttpRequest(url, "", "DELETE")
+}
+
+func SaveDocumentBulk(index string, mails []model.Mail) string {
+	url := getZincSearchHostAPI() + index + "/_search"
+	bulk := Bulk{
+		Index:   index,
+		Records: mails,
+	}
+	bulkJson, err := json.Marshal(bulk)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return _executeHttpRequest(url, string(bulkJson), "POST")
+}
+
+func SaveDocument(index string, _body string) string {
+	url := getZincSearchHostAPI() + index + "/_doc"
+	return _executeHttpRequest(url, _body, "POST")
+}
+
+func SearchByIdAPI(index string, id string) string {
+	url := getZincSearchHostAPI() + index + "/_search"
 	body := model.RequestAPISearchQuery{
 		SearchType: "term",
 		Query: model.QueryAPIOptions{
@@ -31,11 +48,11 @@ func SearchByIdAPI(id string) string {
 		},
 	}
 	bodyJson, _ := json.Marshal(body)
-	return _post(url, string(bodyJson))
+	return _executeHttpRequest(url, string(bodyJson), "POST")
 }
 
-func SearchByContentAPI(term string, from int, maxResult int) string {
-	url := getZincSearchHostAPI() + getZincSearchIndex() + "/_search"
+func SearchByContentAPI(index string, term string, from int, maxResult int) string {
+	url := getZincSearchHostAPI() + index + "/_search"
 
 	body := model.RequestAPISearchQuery{
 		SearchType: "matchphrase",
@@ -56,29 +73,7 @@ func SearchByContentAPI(term string, from int, maxResult int) string {
 		},
 	}
 	bodyJson, _ := json.Marshal(body)
-	return _post(url, string(bodyJson))
-}
-
-func SearchByContentEs(term string) string {
-	url := getZincSearchHostEs() + getZincSearchIndex() + "/_search"
-
-	body := model.RequestEsSearchQuery{
-		Query: model.QueryOptions{
-			Match: model.MatchOptions{
-				Content: term,
-			},
-		},
-		From:       0,
-		MaxResults: 1,
-		Source:     getFieldsToSearch(),
-		Highlight: model.HighlightOptions{
-			Fields: model.FieldsOptions{
-				Content: map[string]string{},
-			},
-		},
-	}
-	bodyJson, _ := json.Marshal(body)
-	return _post(url, string(bodyJson))
+	return _executeHttpRequest(url, string(bodyJson), "POST")
 }
 
 func CreateResponseSearchService(responseQuery string) model.ResponseMultipleMail {
@@ -93,8 +88,8 @@ func CreateResponseSearchIdService(responseQuery string) model.Mail {
 	return model.CreateResponseAPIMail(data.Hits)
 }
 
-func _post(url string, _body string) string {
-	req, err := http.NewRequest("POST", url, strings.NewReader(_body))
+func _executeHttpRequest(url string, _body string, method string) string {
+	req, err := http.NewRequest(method, url, strings.NewReader(_body))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -103,6 +98,7 @@ func _post(url string, _body string) string {
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36")
 
 	resp, err := http.DefaultClient.Do(req)
+
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -110,21 +106,13 @@ func _post(url string, _body string) string {
 	log.Println(resp.StatusCode)
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Error %v", err)
 	}
 	return string(body)
 }
 
-func getZincSearchHostEs() string {
-	return utils.GetEnviroment("ZINC_SEARCH_HOST_ES")
-}
-
 func getZincSearchHostAPI() string {
 	return utils.GetEnviroment("ZINC_SEARCH_HOST")
-}
-
-func getZincSearchIndex() string {
-	return utils.GetEnviroment("ZINC_SEARCH_INDEX")
 }
 
 func getZincSearchUser() string {

@@ -3,6 +3,7 @@ package main
 import (
 	"backend/adapter/zinc"
 	"backend/shared/utils"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -14,6 +15,7 @@ import (
 )
 
 func main() {
+
 	r := chi.NewRouter()
 	// Basic CORS
 	// for more ideas, see: https://developer.github.com/v3/#cross-origin-resource-sharing
@@ -39,11 +41,15 @@ func main() {
 	r.Route("/healt", func(r chi.Router) {
 		r.Get("/", healt)
 	})
-	r.Route("/mail", func(r chi.Router) {
+
+	r.Route("/api", func(r chi.Router) {
+		r.Delete("/", deleteIndex)
+		r.Post("/", createIndex)
 		r.Get("/search", searchContent)
 		r.Post("/search/id", searchMail)
 	})
-	port := utils.CheckParam()
+
+	port := utils.GetEnviroment("PORT")
 	log.Printf("Listen on %v", port)
 	http.ListenAndServe(":"+port, r)
 }
@@ -56,10 +62,10 @@ func healt(w http.ResponseWriter, r *http.Request) {
 func searchContent(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	term := query.Get("q")
+	index := r.Header.Get("index")
 	page, _ := strconv.Atoi(query.Get("page"))
 	maxResults, _ := strconv.Atoi(query.Get("max_results"))
-	//result := zinc.SearchByContentEs(term)
-	result := zinc.SearchByContentAPI(term, page, maxResults)
+	result := zinc.SearchByContentAPI(index, term, page, maxResults)
 	response := zinc.CreateResponseSearchService(result)
 	render.JSON(w, r, response)
 }
@@ -67,7 +73,25 @@ func searchContent(w http.ResponseWriter, r *http.Request) {
 // Search Email
 func searchMail(w http.ResponseWriter, r *http.Request) {
 	id := r.Header.Get("id")
-	result := zinc.SearchByIdAPI(id)
+	index := r.Header.Get("index")
+	result := zinc.SearchByIdAPI(index, id)
 	response := zinc.CreateResponseSearchIdService(result)
+	render.JSON(w, r, response)
+}
+
+// Delete Index
+func deleteIndex(w http.ResponseWriter, r *http.Request) {
+	index := r.Header.Get("index")
+	response := zinc.DeleteIndex(index)
+	render.JSON(w, r, response)
+}
+
+func createIndex(w http.ResponseWriter, r *http.Request) {
+	_body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		w.WriteHeader(401)
+		render.JSON(w, r, nil)
+	}
+	response := zinc.CreateIndex(string(_body))
 	render.JSON(w, r, response)
 }
