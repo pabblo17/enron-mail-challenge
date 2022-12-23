@@ -161,14 +161,15 @@ export default {
   },
   setup() {
     const axiosInstance = axios.create({
-      baseURL: "http://localhost:8000/mail",
+      //baseURL: "http://localhost:8000/mail",
       headers: {
-        "Content-type": "application/json"
+        "Content-type": "application/json",
+        "index": process.env.VUE_APP_SEARCH_API_INDEX
       }
     })
 
-    const getMailService = ref("/search/id")
-    const searchMailService = ref("/search")
+    const getMailService = process.env.VUE_APP_SEARCH_API_SERVICE_FIND
+    const searchMailService = process.env.VUE_APP_SEARCH_API_SERVICE_QUERY
 
     const isVisiblePaginator = ref(false)
     const isVisibleFullMail = ref(false)
@@ -187,7 +188,7 @@ export default {
     const eventSearch = (term) => {
       termSearch.value = term
       axiosInstance.get(
-        searchMailService.value, {
+        searchMailService, {
         params: {
           q: termSearch.value,
           page: "0",
@@ -219,7 +220,7 @@ export default {
 
     const viewFull = (itemId) => {
       axiosInstance.post(
-        getMailService.value, {},
+        getMailService, {},
         {
           headers: { "id": itemId }
         }
@@ -234,7 +235,7 @@ export default {
     
     const paginator = (page) => {
       axiosInstance.get(
-        searchMailService.value, {
+        searchMailService, {
         params: {
           q: termSearch.value,
           page: page.toString(),
